@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wi-Fi Vendor Admin Panel</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f9; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
+        .stats-box { background: #1e7e34; color: white; padding: 20px; border-radius: 8px; font-size: 24px; font-weight: bold; margin-bottom: 20px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📊 Vendor Earnings Panel</h1>
+    <div class="stats-box">
+        Total Revenue: KSH <span id="total-revenue">0</span>
+    </div>
+
+    <h3>📜 Recent Wi-Fi Sales</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Phone</th>
+                <th>Amount</th>
+                <th>Receipt</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+        <tbody id="sales-table">
+            <!-- Data will load here -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    async function loadStats() {
+        const response = await fetch('/api/earnings/vendor_01');
+        const data = await response.json();
+
+        document.getElementById('total-revenue').innerText = data.total;
+
+        const tableBody = document.getElementById('sales-table');
+        tableBody.innerHTML = ""; 
+
+        data.rows.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${row.phone}</td>
+                <td>KSH ${row.amount}</td>
+                <td>${row.receipt_number}</td>
+                <td>${row.timestamp}</td>
+            `;
+            tableBody.appendChild(tr);
+        });
+    }
+
+    loadStats();
+</script>
+
+</body>
+</html>

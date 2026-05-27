@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Speed Wi-Fi Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f9; text-align: center; padding: 20px; }
+        .box { background: white; max-width: 350px; margin: 40px auto; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { color: #333; }
+        select, input, button { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+        button { background: #1e7e34; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:hover { background: #1c7430; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>🚀 Connect to Wi-Fi</h2>
+    <p>Select your preferred bundle package:</p>
+    
+    <select id="amount">
+        <option value="10">1 Hour - KSH 10</option>
+        <option value="20">3 Hours - KSH 20</option>
+        <option value="50">24 Hours - KSH 50</option>
+    </select>
+
+    <input type="text" id="phone" placeholder="Phone Number (e.g. 254712345678)">
+    <button onclick="payWifi()">Pay with M-Pesa</button>
+</div>
+
+<script>
+    async function payWifi() {
+        const phone = document.getElementById('phone').value;
+        const amount = document.getElementById('amount').value;
+
+        if(!phone) { alert("Please enter your M-Pesa phone number!"); return; }
+
+        alert("Sending M-Pesa PIN prompt to your phone... Please wait.");
+
+        const response = await fetch('/stkpush', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: phone, amount: amount, vendorId: "vendor_01" })
+
+        });
+
+        if (response.ok) {
+            alert("PIN prompt sent! Complete payment to access the internet.");
+        } else {
+            alert("Error sending request. Please check the phone number format.");
+        }
+    }
+</script>
+
+</body>
+</html>
