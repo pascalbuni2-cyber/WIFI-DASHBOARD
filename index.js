@@ -111,7 +111,7 @@ app.get('/', (req, res) => {
   html += '  var ph = document.getElementById("customerPhone").value.trim();';
   html += '  if(!ph){ alert("Please enter your phone number first!"); return; }';
   // Convert leading 0 to 254 for Safaricom format
-  if(ph.startsWith("0")) { ph = "254" + ph.substring(1); }';
+  if(ph.startsWith("0")) { ph = "254" + ph.substring(1); }
   html += '  window.location.href = "/buy-wifi?phone=" + ph + "&amount=" + selectedAmount;';
   html += '}';
   html += '</script>';
