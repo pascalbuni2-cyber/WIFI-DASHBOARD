@@ -22,25 +22,6 @@ const db = new sqlite3.Database('database.db', (err) => {
   }
 });
 
-// Helper function to get live Safaricom Access Token
-async function getMpesaToken() {
-  const key = process.env.MPESA_CONSUMER_KEY;
-  const secret = process.env.MPESA_CONSUMER_SECRET;
-  const auth = Buffer.from(`${key}:${secret}`).toString('base64');
-
-  try {
-    // Note: URL changes from 'sandbox' to 'api' for live apps
-    const response = await axios.get(
-      'https://safaricom.co.ke',
-      { headers: { Authorization: `Basic ${auth}` } }
-    );
-    return response.data.access_token;
-  } catch (error) {
-    console.error('Token Error:', error.message);
-    throw error;
-  }
-}
-
 // ROUTE 1: The Vendor Dashboard (Admin view)
 app.get('/admin', (req, res) => {
   db.get(`SELECT SUM(amount) as total FROM sales`, [], (err, row) => {
@@ -110,8 +91,7 @@ app.get('/', (req, res) => {
   html += 'function submitPay(){';
   html += '  var ph = document.getElementById("customerPhone").value.trim();';
   html += '  if(!ph){ alert("Please enter your phone number first!"); return; }';
-  // Convert leading 0 to 254 for Safaricom format
-  if(ph.startsWith("0")) { ph = "254" + ph.substring(1); }
+  html += '  if(ph.startsWith("0")) { ph = "254" + ph.substring(1); }';
   html += '  window.location.href = "/buy-wifi?phone=" + ph + "&amount=" + selectedAmount;';
   html += '}';
   html += '</script>';
@@ -139,14 +119,13 @@ app.get('/buy-wifi', async (req, res) => {
     const passkey = process.env.MPESA_PASSKEY;
     const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
 
-    // Build the dynamic callback URL pointing to your online cloud server
-    const serverUrl = process.env.SERVER_URL || 'https://ngrok-free.dev';
+    const serverUrl = process.env.SERVER_URL || 'https://onrender.com';
 
     const mpesaData = {
       BusinessShortCode: shortcode,
       Password: password,
       Timestamp: timestamp,
-      TransactionType: 'CustomerBuyGoodsOnline', // Changes to 'CustomerBuyGoodsOnline' for standard Till numbers
+      TransactionType: 'CustomerBuyGoodsOnline', 
       Amount: amount,
       PartyA: phone,
       PartyB: shortcode,
@@ -156,7 +135,6 @@ app.get('/buy-wifi', async (req, res) => {
       TransactionDesc: 'WiFi Payment'
     };
 
-    // Note: URL changes to 'api' instead of 'sandbox'
     await axios.post(
       'https://safaricom.co.ke',
       mpesaData,
@@ -177,21 +155,13 @@ app.get('/buy-wifi', async (req, res) => {
 // ROUTE 4: Real endpoint that Safaricom secretly hits after customer enters PIN
 app.post('/mpesa-callback', (req, res) => {
   console.log('Safaricom sent callback payment notification!');
-  
   const body = req.body.Body;
-  if (!body || !body.stkCallback) {
-    return res.sendStatus(400);
-  }
-
+  if (!body || !body.stkCallback) { return res.sendStatus(400); }
   const callbackData = body.stkCallback;
   
-  // ResultCode 0 means payment was successful!
   if (callbackData.ResultCode === 0) {
     const metaData = callbackData.CallbackMetadata.Item;
-    
-    let amount = 0;
-    let receipt = '';
-    let phone = '';
+    let amount = 0; let receipt = ''; let phone = '';
     
     metaData.forEach(item => {
       if (item.Name === 'Amount') amount = item.Value;
@@ -199,3 +169,30 @@ app.post('/mpesa-callback', (req, res) => {
       if (item.Name === 'PhoneNumber') phone = item.Value;
     });
 
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const sql = `INSERT INTO sales (phone, amount, receipt, time) VALUES (?, ?, ?, ?)`;
+    db.run(sql, [phone, amount, receipt, time], (err) => {
+      if (err) console.error(err.message);
+    });
+  }
+  res.send({ ResultCode: 0, ResultDesc: "Accept Service" });
+});
+
+async function getMpesaToken() {
+  const key = process.env.MPESA_CONSUMER_KEY;
+  const secret = process.env.MPESA_CONSUMER_SECRET;
+  const auth = Buffer.from(`${key}:${secret}`).toString('base64');
+  try {
+    const response = await axios.get(
+      'https://safaricom.co.ke',
+      { headers: { Authorization: `Basic ${auth}` } }
+    );
+    return response.data.access_token;
+  } catch (error) {
+    throw error;
+  }
+}
+
+app.listen(PORT, () => {
+  console.log(`Live application handler active on port ${PORT}`);
+});
